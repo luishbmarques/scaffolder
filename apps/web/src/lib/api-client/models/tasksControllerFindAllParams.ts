@@ -36,6 +36,10 @@ status?: TasksControllerFindAllStatus;
  */
 priority?: TasksControllerFindAllPriority;
 /**
+ * Filtro por categoria
+ */
+categoryId?: string;
+/**
  * Campo de ordenação
  */
 sortBy?: TasksControllerFindAllSortBy;

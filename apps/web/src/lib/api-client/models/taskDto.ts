@@ -5,6 +5,7 @@
  * API REST do AppStart - Especificação OpenAPI 3.0
  * OpenAPI spec version: 1.0.0
  */
+import type { TaskCategoryDto } from './taskCategoryDto';
 import type { TaskDtoDescription } from './taskDtoDescription';
 import type { TaskDtoDueDate } from './taskDtoDueDate';
 import type { TaskDtoPriority } from './taskDtoPriority';
@@ -34,6 +35,16 @@ export interface TaskDto {
   ownerId: string;
   /** Dados resumidos do proprietário */
   owner?: TaskOwnerDto;
+  /**
+     * Identificador da categoria
+     * @nullable
+     */
+  categoryId?: string | null;
+  /**
+     * Dados resumidos da categoria
+     * @nullable
+     */
+  category?: TaskCategoryDto | null;
   /** Data de criação */
   createdAt: string;
   /** Data de última atualização */

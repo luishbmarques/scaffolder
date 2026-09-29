@@ -23,4 +23,6 @@ export interface CreateTaskDto {
   priority?: CreateTaskDtoPriority;
   /** Data de entrega limite (ISO 8601) */
   dueDate?: string;
+  /** Categoria da tarefa (deve pertencer ao usuário) */
+  categoryId?: string;
 }

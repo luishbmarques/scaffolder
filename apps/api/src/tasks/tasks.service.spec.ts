@@ -1,5 +1,6 @@
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { CategoriesService } from '../categories/categories.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TaskPriorityEnum, TaskStatusEnum } from './task.dto';
 import { TasksService } from './tasks.service';
@@ -31,6 +32,8 @@ describe('TasksService', () => {
     priority: TaskPriorityEnum.HIGH,
     dueDate: new Date(Date.now() + 86400000),
     ownerId: 'user-uuid-1',
+    categoryId: null as string | null,
+    category: null as { id: string; name: string; color: string } | null,
     deletedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -39,6 +42,13 @@ describe('TasksService', () => {
       name: 'Ada Lovelace',
       email: 'ada@example.com',
     },
+  };
+
+  const mockCategory = {
+    id: 'category-uuid-1',
+    name: 'Faculdade',
+    color: '#10B981',
+    ownerId: 'user-uuid-1',
   };
 
   beforeEach(() => {
@@ -50,8 +60,12 @@ describe('TasksService', () => {
         count: vi.fn(),
         update: vi.fn(),
       },
+      category: {
+        findFirst: vi.fn(),
+      },
     };
-    service = new TasksService(prisma as unknown as PrismaService);
+    const prismaService = prisma as unknown as PrismaService;
+    service = new TasksService(prismaService, new CategoriesService(prismaService));
   });
 
   describe('create', () => {
@@ -226,6 +240,97 @@ describe('TasksService', () => {
       await expect(service.remove(mockOtherUser, mockTask.id)).rejects.toThrow(
         ForbiddenException,
       );
+    });
+  });
+
+  describe('categories', () => {
+    it('creates task linked to a category owned by the user', async () => {
+      prisma.category.findFirst.mockResolvedValue({ id: mockCategory.id, ownerId: mockUser.id });
+      prisma.task.create.mockResolvedValue({
+        ...mockTask,
+        categoryId: mockCategory.id,
+        category: { id: mockCategory.id, name: mockCategory.name, color: mockCategory.color },
+      });
+
+      const result = await service.create(mockUser.id, {
+        title: 'Lista de exercícios',
+        categoryId: mockCategory.id,
+      });
+
+      expect(result.categoryId).toBe(mockCategory.id);
+      expect(result.category).toEqual({ id: mockCategory.id, name: 'Faculdade', color: '#10B981' });
+      expect(prisma.task.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ categoryId: mockCategory.id }),
+        }),
+      );
+    });
+
+    it('serializes tasks without category as null', async () => {
+      prisma.task.create.mockResolvedValue(mockTask);
+
+      const result = await service.create(mockUser.id, { title: 'Sem categoria' });
+
+      expect(result.categoryId).toBeNull();
+      expect(result.category).toBeNull();
+      expect(prisma.category.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('rejects creating a task with a category owned by another user', async () => {
+      prisma.category.findFirst.mockResolvedValue({ id: mockCategory.id, ownerId: mockOtherUser.id });
+
+      await expect(
+        service.create(mockUser.id, { title: 'Tarefa', categoryId: mockCategory.id }),
+      ).rejects.toThrow(BadRequestException);
+      expect(prisma.task.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects creating a task with a deleted or missing category', async () => {
+      prisma.category.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.create(mockUser.id, { title: 'Tarefa', categoryId: 'missing-category' }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('filters the list by category', async () => {
+      prisma.task.count.mockResolvedValue(0);
+      prisma.task.findMany.mockResolvedValue([]);
+
+      await service.findAll(mockUser, { page: 1, pageSize: 10, categoryId: mockCategory.id });
+
+      expect(prisma.task.findMany.mock.calls[0][0].where.categoryId).toBe(mockCategory.id);
+    });
+
+    it('removes the category from a task when categoryId is null', async () => {
+      prisma.task.findFirst.mockResolvedValue({ ...mockTask, categoryId: mockCategory.id });
+      prisma.task.update.mockResolvedValue(mockTask);
+
+      await service.update(mockUser, mockTask.id, { categoryId: null });
+
+      expect(prisma.category.findFirst).not.toHaveBeenCalled();
+      expect(prisma.task.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ categoryId: null }),
+        }),
+      );
+    });
+
+    it('validates the category against the task owner when an admin edits it', async () => {
+      prisma.task.findFirst.mockResolvedValue(mockTask);
+      prisma.category.findFirst.mockResolvedValue({ id: 'admin-category', ownerId: mockAdmin.id });
+
+      await expect(
+        service.update(mockAdmin, mockTask.id, { categoryId: 'admin-category' }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('treats changing the category of a COMPLETED task as a detail change', async () => {
+      prisma.task.findFirst.mockResolvedValue({ ...mockTask, status: TaskStatusEnum.COMPLETED });
+
+      await expect(
+        service.update(mockUser, mockTask.id, { categoryId: mockCategory.id }),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });
