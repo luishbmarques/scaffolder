@@ -27,16 +27,17 @@ enum TaskPriority {
 }
 
 model UserProfile {
-  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  keycloakUserId String    @unique
+  id             String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  keycloakUserId String     @unique
   name           String
-  email          String    @unique
-  roleSnapshot   UserRole  @default(USER)
-  isActiveLocal  Boolean   @default(true)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  email          String     @unique
+  roleSnapshot   UserRole   @default(USER)
+  isActiveLocal  Boolean    @default(true)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
   sessions       Session[]
   tasks          Task[]
+  categories     Category[]
 
   @@map("user_profiles")
 }
@@ -64,13 +65,32 @@ model Task {
   priority    TaskPriority @default(MEDIUM)
   dueDate     DateTime?
   ownerId     String       @db.Uuid
+  categoryId  String?      @db.Uuid
   deletedAt   DateTime?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   owner       UserProfile  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  category    Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   @@index([ownerId])
   @@index([deletedAt])
   @@index([status])
+  @@index([categoryId])
   @@map("tasks")
+}
+
+model Category {
+  id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  color     String      @default("#3B82F6")
+  ownerId   String      @db.Uuid
+  deletedAt DateTime?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  owner     UserProfile @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+
+  @@index([ownerId])
+  @@index([deletedAt])
+  @@map("categories")
 }

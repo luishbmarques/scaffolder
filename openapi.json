@@ -779,6 +779,392 @@
         ]
       }
     },
+    "/api/v1/categories": {
+      "post": {
+        "description": "Cria uma categoria de tarefas pertencente ao usuário autenticado. O nome é único por usuário.",
+        "operationId": "CategoriesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Categoria criada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dados inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Não autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Já existe uma categoria com este nome",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Criar nova categoria",
+        "tags": [
+          "categories"
+        ]
+      },
+      "get": {
+        "description": "Lista as categorias do usuário autenticado com paginação, busca por nome e contagem de tarefas ativas.",
+        "operationId": "CategoriesController_findAll",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Número da página",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Itens por página",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Termo de busca",
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Campo de ordenação",
+            "schema": {
+              "default": "name",
+              "type": "string",
+              "enum": [
+                "name",
+                "createdAt"
+              ]
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Direção da ordenação",
+            "schema": {
+              "default": "asc",
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista paginada de categorias",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedCategoriesResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Não autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Listar categorias do usuário",
+        "tags": [
+          "categories"
+        ]
+      }
+    },
+    "/api/v1/categories/{id}": {
+      "get": {
+        "description": "Retorna uma categoria do usuário (ou qualquer categoria para ADMIN).",
+        "operationId": "CategoriesController_findById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dados da categoria",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Não autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Acesso negado (categoria de outro proprietário)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Categoria não encontrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Obter detalhes de uma categoria",
+        "tags": [
+          "categories"
+        ]
+      },
+      "put": {
+        "description": "Renomeia ou altera a cor de uma categoria respeitando ownership e unicidade do nome.",
+        "operationId": "CategoriesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Categoria atualizada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dados inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Não autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Acesso negado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Categoria não encontrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Já existe uma categoria com este nome",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Atualizar categoria",
+        "tags": [
+          "categories"
+        ]
+      },
+      "delete": {
+        "description": "Realiza a remoção lógica da categoria. As tarefas vinculadas permanecem, mas ficam sem categoria.",
+        "operationId": "CategoriesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Categoria excluída com sucesso"
+          },
+          "401": {
+            "description": "Não autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Acesso negado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Categoria não encontrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Excluir categoria (remoção lógica)",
+        "tags": [
+          "categories"
+        ]
+      }
+    },
     "/api/v1/tasks": {
       "post": {
         "description": "Cria uma nova tarefa associando-a ao usuário autenticado como proprietário.",
@@ -901,6 +1287,16 @@
                 "HIGH",
                 "URGENT"
               ]
+            }
+          },
+          {
+            "name": "categoryId",
+            "required": false,
+            "in": "query",
+            "description": "Filtro por categoria",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
             }
           },
           {
@@ -1488,6 +1884,115 @@
           "isActive"
         ]
       },
+      "CreateCategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nome da categoria (único por usuário)",
+            "example": "Faculdade",
+            "minLength": 2,
+            "maxLength": 50
+          },
+          "color": {
+            "type": "string",
+            "description": "Cor da categoria em hexadecimal (#RRGGBB)",
+            "example": "#10B981",
+            "default": "#3B82F6"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "CategoryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Identificador único da categoria",
+            "example": "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33"
+          },
+          "name": {
+            "type": "string",
+            "description": "Nome da categoria",
+            "example": "Faculdade"
+          },
+          "color": {
+            "type": "string",
+            "description": "Cor da categoria em hexadecimal",
+            "example": "#10B981"
+          },
+          "ownerId": {
+            "type": "string",
+            "description": "Identificador do usuário proprietário",
+            "example": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+          },
+          "taskCount": {
+            "type": "number",
+            "description": "Quantidade de tarefas ativas vinculadas à categoria",
+            "example": 3
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Data de criação"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Data de última atualização"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "color",
+          "ownerId",
+          "taskCount",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "PaginatedCategoriesResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "description": "Lista de categorias paginadas",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CategoryDto"
+            }
+          },
+          "meta": {
+            "description": "Metadados de paginação",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaginationMetaDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ]
+      },
+      "UpdateCategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nome da categoria (único por usuário)",
+            "example": "Trabalho",
+            "minLength": 2,
+            "maxLength": 50
+          },
+          "color": {
+            "type": "string",
+            "description": "Cor da categoria em hexadecimal (#RRGGBB)",
+            "example": "#F59E0B"
+          }
+        }
+      },
       "CreateTaskDto": {
         "type": "object",
         "properties": {
@@ -1519,6 +2024,12 @@
             "type": "string",
             "description": "Data de entrega limite (ISO 8601)",
             "example": "2026-12-31T23:59:59.000Z"
+          },
+          "categoryId": {
+            "type": "string",
+            "description": "Categoria da tarefa (deve pertencer ao usuário)",
+            "format": "uuid",
+            "example": "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33"
           }
         },
         "required": [
@@ -1548,6 +2059,31 @@
           "id",
           "name",
           "email"
+        ]
+      },
+      "TaskCategoryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Identificador único da categoria",
+            "example": "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33"
+          },
+          "name": {
+            "type": "string",
+            "description": "Nome da categoria",
+            "example": "Faculdade"
+          },
+          "color": {
+            "type": "string",
+            "description": "Cor da categoria em hexadecimal",
+            "example": "#10B981"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "color"
         ]
       },
       "TaskDto": {
@@ -1605,6 +2141,22 @@
             "allOf": [
               {
                 "$ref": "#/components/schemas/TaskOwnerDto"
+              }
+            ]
+          },
+          "categoryId": {
+            "type": "string",
+            "description": "Identificador da categoria",
+            "format": "uuid",
+            "nullable": true
+          },
+          "category": {
+            "description": "Dados resumidos da categoria",
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TaskCategoryDto"
               }
             ]
           },
@@ -1689,6 +2241,12 @@
           "dueDate": {
             "type": "string",
             "description": "Data de entrega limite (ISO 8601)"
+          },
+          "categoryId": {
+            "type": "string",
+            "description": "Categoria da tarefa. Envie null para remover a categoria.",
+            "format": "uuid",
+            "nullable": true
           }
         }
       }
